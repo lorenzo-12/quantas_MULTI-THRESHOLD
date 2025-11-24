@@ -63,11 +63,14 @@ namespace quantas{
         bool ack_sent;
         bool vote1_sent;
         bool vote2_sent;
+        int ack_sent_value = -1;
+		int vote1_sent_value = -1;
+		int vote2_sent_value = -1;
         map<long, int> ack_msgs;
         map<long, int> vote1_msgs;
         map<long, int> vote2_msgs;
-        vector<interfaceId> honest_group_0;
-        vector<interfaceId> honest_group_1;
+        vector<interfaceId> group_0;
+        vector<interfaceId> group_1;
 
         int count(const map<long, int>& s, int value){
             int counter = 0;

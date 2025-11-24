@@ -13,6 +13,22 @@ You should have received a copy of the GNU General Public License along with QUA
 #include <unordered_map>
 #include <unordered_set>
 
+string RED = "\033[31m";
+string GREEN = "\033[32m";
+string YELLOW = "\033[33m";
+string BLUE = "\033[34m";
+string MAGENTA = "\033[35m";
+string CYAN = "\033[36m";
+string RESET = "\033[0m";
+
+int byzantine_value(string behavior, int v) {
+	if (behavior == "opposite") {
+		return 1 - v;
+	}
+	// default behavior: same value
+	return v;
+}
+
 namespace quantas {
 
 	//
@@ -38,8 +54,8 @@ namespace quantas {
 		network_size = n;
 		sender = parameters["sender"];
 		percentage = parameters["percentage"];
-		honest_group_0 = parameters["honest_group_0"].get<vector<interfaceId>>();
-		honest_group_1 = parameters["honest_group_1"].get<vector<interfaceId>>();
+		group_0 = parameters["group_0"].get<vector<interfaceId>>();
+		group_1 = parameters["group_1"].get<vector<interfaceId>>();
 		combination = parameters["combination"].get<vector<string>>();
 
 		is_byzantine = true;
@@ -70,6 +86,10 @@ namespace quantas {
 
 	void BrachaPeer::performComputation() {
 
+		if (sent_echo_value != -1) printf("%s(echo, s:%ld, v:%d)%s  -  ", MAGENTA.c_str(), id(), sent_echo_value, RESET.c_str());
+		if (sent_ready_value != -1) printf("%s(ready, s:%ld, v:%d)%s", MAGENTA.c_str(), id(), sent_ready_value, RESET.c_str());
+		cout << endl;
+
 		// ------------------------------ STEP 0: Init --------------------------------------------
 		if (is_byzantine && getRound() == 0 && id() == sender) {
 			BrachaMessage m0;
@@ -82,82 +102,18 @@ namespace quantas {
 			m1.type = "send";
 			m1.value = 1;
 
-			byzantine_broadcast(m0, m1, honest_group_0, honest_group_1);
-			if (debug_prints) cout << " sent byzantine send messages" << endl;
-		}
-
-		if (!is_byzantine && getRound() == 0 && id() == sender) {
-			BrachaMessage m0;
-			m0.source = id();
-			m0.type = "send";
-			m0.value = 0;
-			broadcast(m0);
-			total_msgs_sent  += network_size;
-			if (debug_prints) cout << " sent honest send messages" << endl;
-		}
-
-		// ------------------------------ Byzantine Ack/ Vote -----------------------------------------
-		// Byzantine nodes send conflicting ack messages to honest groups
-		// Honest nodes are split into two groups, each receiving a different value
-		// This simulates a worst-case scenario where Byzantine nodes try to cause maximum confusion
-		if (is_byzantine && getRound() == 0){
-			BrachaMessage echo_m0;
-			echo_m0.type = "echo";
-			echo_m0.source = id();
-			echo_m0.value = 0;
-			BrachaMessage echo_m1;
-			echo_m1.type = "echo";
-			echo_m1.source = id();
-			echo_m1.value = 1;
-			BrachaMessage ready_m0;
-			ready_m0.type = "ready";
-			ready_m0.source = id();
-			ready_m0.value = 0;
-			BrachaMessage ready_m1;
-			ready_m1.type = "ready";
-			ready_m1.source = id();
-			ready_m1.value = 1;
-
-			//cout << "Combination: " << combination[0] << " - " << combination[1] << "  -->  ";
-			if (combination[0] == "silent"){
-				// do nothing
-				//cout << "silent - ";
-			}
-			if (combination[0] == "same"){
-				byzantine_broadcast(echo_m0, echo_m1, honest_group_0, honest_group_1);
-				//cout << "same - ";
-			}
-			if (combination[0] == "opposite"){
-				byzantine_broadcast(echo_m0, echo_m1, honest_group_1, honest_group_0);
-				//cout << "opposite - ";
-			}
-			if (combination[1] == "silent"){
-				// do nothing
-				//cout << "silent" << endl;
-			}
-			if (combination[1] == "same"){
-				byzantine_broadcast(ready_m0, ready_m1, honest_group_0, honest_group_1);
-				//cout << "same" << endl;
-			}
-			if (combination[1] == "opposite"){
-				byzantine_broadcast(ready_m0, ready_m1, honest_group_1, honest_group_0);
-				//cout << "opposite" << endl;
-			}
-
-			
+			byzantine_broadcast(m0, m1, group_0, group_1);
+			if (debug_prints) cout << RED << " sent byzantine send messages" << RESET << endl;
 		}
 		// ----------------------------------------------------------------------------------------
 
-		if (is_byzantine) {
-			// Byzantine nodes do nothing else
-			return;
-		}
+		if (delivered) return;
 		
 		if (debug_prints) cout << "node_" << id() << " -------------------------------------" << endl;
 		while (!inStreamEmpty()) {
 			Packet<BrachaMessage> newMsg = popInStream();
 			BrachaMessage m = newMsg.getMessage();
-			if (debug_prints) printf("<-- (%s, %ld, %d)\n", m.type.c_str(), m.source, m.value);
+			if (debug_prints) printf("%s<-- (%s, %ld, %d)%s\n", BLUE.c_str(), m.type.c_str(), m.source, m.value, RESET.c_str());
 			
 			if (m.type == "echo"){
 				echo_msgs[m.source] = m.value;
@@ -169,14 +125,26 @@ namespace quantas {
 
 			// ------------------------------ STEP 1: ECHO Phase ----------------------------------
 			if (sent_echo == false && m.type == "send"){
-				sent_echo = true;
 				BrachaMessage echo_m;
-				echo_m.source = id();
-				echo_m.type = "echo";
-				echo_m.value = m.value;
-				broadcast(echo_m);
-				total_msgs_sent  += network_size;
-				if (debug_prints) printf("--> (%s, %ld, %d)\n", echo_m.type.c_str(), echo_m.source, echo_m.value);
+
+				// byzantine node
+				if (is_byzantine && combination[0] != "silent") {
+					echo_m.source = id();
+					echo_m.type = "echo";
+					echo_m.value = byzantine_value(combination[0], m.value);
+					broadcast(echo_m);
+				}
+				// honest node
+				else if (!is_byzantine) {
+					echo_m.source = id();
+					echo_m.type = "echo";
+					echo_m.value = m.value;
+					broadcast(echo_m);
+					total_msgs_sent  += network_size;
+				}
+
+				sent_echo = true;
+				if (debug_prints) printf("%s--> (%s, %ld, %d)%s\n", GREEN.c_str(), echo_m.type.c_str(), echo_m.source, echo_m.value, RESET.c_str());
 			}
 			// ------------------------------------------------------------------------------------
 
@@ -184,37 +152,61 @@ namespace quantas {
 			// ------------------------------ STEP 2: READY Phase ---------------------------------
 			int echo_val = check_echo();
 			if (sent_ready == false && echo_val != -1){
-				sent_ready = true;
 				BrachaMessage ready_msg;
-				ready_msg.source = id();
-				ready_msg.type = "ready";
-				ready_msg.value = echo_val;
-				broadcast(ready_msg);
-				total_msgs_sent  += network_size;
-				if (debug_prints) printf("--> (%s, %ld, %d)\n", ready_msg.type.c_str(), ready_msg.source, ready_msg.value);
+
+				// byzantine node
+				if (is_byzantine && combination[1] != "silent") {
+					ready_msg.source = id();
+					ready_msg.type = "ready";
+					ready_msg.value = byzantine_value(combination[1], echo_val);
+					broadcast(ready_msg);
+				}
+				// honest node
+				else if (!is_byzantine) {
+					ready_msg.source = id();
+					ready_msg.type = "ready";
+					ready_msg.value = echo_val;
+					broadcast(ready_msg);
+					total_msgs_sent  += network_size;
+				}
+
+				sent_ready = true;
+				if (debug_prints) printf("%s--> (%s, %ld, %d)%s\n", GREEN.c_str(), ready_msg.type.c_str(), ready_msg.source, ready_msg.value, RESET.c_str());
 			}
 
 			int ready_val = check_ready();
 			if (sent_ready == false && ready_val != -1){
-				sent_ready = true;
 				BrachaMessage ready_msg;
-				ready_msg.source = id();
-				ready_msg.type = "ready";
-				ready_msg.value = ready_val;
-				broadcast(ready_msg);
-				total_msgs_sent  += network_size;
-				if (debug_prints) printf("--> (%s, %ld, %d)\n", ready_msg.type.c_str(), ready_msg.source, ready_msg.value);
+
+				// byzantine node
+				if (is_byzantine && combination[1] != "silent") {
+					ready_msg.source = id();
+					ready_msg.type = "ready";
+					ready_msg.value = byzantine_value(combination[1], ready_val);
+					broadcast(ready_msg);
+				}
+				// honest node
+				else if (!is_byzantine) {
+					ready_msg.source = id();
+					ready_msg.type = "ready";
+					ready_msg.value = ready_val;
+					broadcast(ready_msg);
+					total_msgs_sent  += network_size;
+				}
+
+				sent_ready = true;
+				if (debug_prints) printf("%s--> (%s, %ld, %d)%s\n", GREEN.c_str(), ready_msg.type.c_str(), ready_msg.source, ready_msg.value, RESET.c_str());
 			}
 			// ------------------------------------------------------------------------------------
 
 			
 			// ------------------------------ STEP 3: Deliver -------------------------------------
 			int deliver_val = check_delivery();
-			if (delivered == false && deliver_val != -1){
+			if (delivered == false && deliver_val != -1 && !is_byzantine){
 				delivered = true;
 				finished_round = getRound();
 				final_value = deliver_val;
-				if (debug_prints) cout << " DELIVERED value " << final_value << endl;
+				if (debug_prints) cout << RED << " DELIVERED value " << final_value << RESET << endl;
 			}
 			// ------------------------------------------------------------------------------------
 

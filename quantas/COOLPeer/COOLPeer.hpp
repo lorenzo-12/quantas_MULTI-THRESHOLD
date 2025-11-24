@@ -73,8 +73,8 @@ namespace quantas{
         vector<interfaceId> done_msgs;
         map<long, int> M;
         map<long, int> S;
-        vector<interfaceId> honest_group_0;
-        vector<interfaceId> honest_group_1;
+        vector<interfaceId> group_0;
+        vector<interfaceId> group_1;
 
         bool check_ok1(){
             if (A1.size() >= ok1_threshold) return true;

@@ -9,6 +9,14 @@ You should have received a copy of the GNU General Public License along with QUA
 
 #include "ImbsRaynalPeer.hpp"
 
+int byzantine_value(string behavior, int v) {
+	if (behavior == "opposite") {
+		return 1 - v;
+	}
+	// default behavior: same value
+	return v;
+}
+
 namespace quantas {
 
 	//
@@ -34,8 +42,8 @@ namespace quantas {
 		network_size = n;
 		sender = parameters["sender"];
 		percentage = parameters["percentage"];
-		honest_group_0 = parameters["honest_group_0"].get<vector<interfaceId>>();
-		honest_group_1 = parameters["honest_group_1"].get<vector<interfaceId>>();
+		group_0 = parameters["group_0"].get<vector<interfaceId>>();
+		group_1 = parameters["group_1"].get<vector<interfaceId>>();
 		combination = parameters["combination"];
 
 		is_byzantine = true;
@@ -77,54 +85,10 @@ namespace quantas {
 			m1.source = id();
 			m1.value = 1;
 
-			byzantine_broadcast(m0, m1, honest_group_0, honest_group_1);
+			byzantine_broadcast(m0, m1, group_0, group_1);
 			//cout << " sent byzantine init messages" << endl;
 		}
-
-		if (!is_byzantine && getRound() == 0 && id() == sender) {
-			ImbsRaynalMessage m0;
-			m0.type = "init";
-			m0.source = id();
-			m0.value = 0;
-			broadcast(m0);
-			total_msgs_sent  += network_size;
-			cout << " sent honest init messages" << endl;
-		}
-
-		// ------------------------------ Byzantine Ack/ Vote -----------------------------------------
-		// Byzantine nodes send conflicting ack messages to honest groups
-		// Honest nodes are split into two groups, each receiving a different value
-		// This simulates a worst-case scenario where Byzantine nodes try to cause maximum confusion
-		if (is_byzantine && getRound() == 0){
-			ImbsRaynalMessage m0;
-			m0.type = "witness";
-			m0.source = sender;
-			m0.value = 0;
-			ImbsRaynalMessage m1;
-			m1.type = "witness";
-			m1.source = sender;
-			m1.value = 1;
-			//cout << "Combination: " << combination << "  -->  ";
-			if (combination == "silent"){
-				// do nothing
-				//cout << "silent" << endl;
-			}
-			if (combination == "same"){
-				byzantine_broadcast(m0, m1, honest_group_0, honest_group_1);
-				//cout << "same" << endl;
-			}
-			if (combination == "opposite"){
-				byzantine_broadcast(m0, m1, honest_group_1, honest_group_0);
-				//cout << "opposite" << endl;
-			}
-
-		}
 		// ----------------------------------------------------------------------------------------
-
-		if (is_byzantine) {
-			// Byzantine nodes do nothing else
-			return;
-		}
 
 		if (debug_prints) cout << "node_" << id() << " -------------------------------------" << endl;
 		while (!inStreamEmpty()) {
@@ -135,13 +99,25 @@ namespace quantas {
 			// ------------------------------ STEP 1.1: Witness -----------------------------------
 			if (m.type == "init"){
 				if (!contains(received_init, m.source) && !contains(broadcast_witness, m.source)) {
-					broadcast_witness.push_back(make_pair(m.source, m.value));
 					ImbsRaynalMessage msg;
-					msg.type = "witness";
-					msg.source = m.source;
-					msg.value = m.value;
-					broadcast(msg);
-					total_msgs_sent  += network_size;
+
+					// byzantine node
+					if (is_byzantine && combination != "silent"){
+						msg.type = "witness";
+						msg.source = m.source;
+						msg.value = byzantine_value(combination, m.value);
+						broadcast(msg);
+					}					
+					// honest node
+					else if (!is_byzantine) {
+						msg.type = "witness";
+						msg.source = m.source;
+						msg.value = m.value;
+						broadcast(msg);
+						total_msgs_sent  += network_size;
+					}
+
+					broadcast_witness.push_back(make_pair(m.source, m.value));
 					if (debug_prints) printf("--> (%s, %ld, %d)\n", msg.type.c_str(), msg.source, msg.value);
 				}
 				received_init.push_back(make_pair(m.source, m.value));
@@ -152,16 +128,29 @@ namespace quantas {
 				// ------------------------------ STEP 1.2: Witness -------------------------------
 				received_witness.push_back(make_pair(m.source, m.value));
 				if( (check_witness(m.source, m.value)!=-1) && (!contains(broadcast_witness, m.source, m.value))) {
+
+					// byzantine node
+					if (is_byzantine && combination != "silent") {
+						ImbsRaynalMessage msg;
+						msg.type = m.type;
+						msg.source = m.source;
+						msg.value = byzantine_value(combination, m.value);
+						broadcast(msg);
+					}
+					// honest node
+					else if (!is_byzantine) {
+						broadcast(m);
+						total_msgs_sent  += network_size;
+					}
+					
 					broadcast_witness.push_back(make_pair(m.source, m.value));
-					broadcast(m);
-					total_msgs_sent  += network_size;
 					if (debug_prints) printf("--> (%s, %ld, %d)\n", m.type.c_str(), m.source, m.value);
 				}
 				// --------------------------------------------------------------------------------
 
 
 				// ------------------------------ STEP 2: Delivery --------------------------------
-				if ((check_delivery(m.source, m.value)!=-1) && (delivered==false)) {
+				if ((check_delivery(m.source, m.value)!=-1) && (delivered==false) && !is_byzantine) {
 					delivered = true;
 					finished_round = getRound();
 					final_value = m.value;

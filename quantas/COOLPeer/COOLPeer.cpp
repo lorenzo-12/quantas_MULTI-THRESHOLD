@@ -13,6 +13,14 @@ You should have received a copy of the GNU General Public License along with QUA
 #include <unordered_map>
 #include <unordered_set>
 
+int byzantine_value(string behavior, int v) {
+	if (behavior == "opposite") {
+		return 1 - v;
+	}
+	// default behavior: same value
+	return v;
+}
+
 namespace quantas {
 
 	//
@@ -38,8 +46,8 @@ namespace quantas {
 		network_size = n;
 		sender = parameters["sender"];
 		percentage = parameters["percentage"];
-		honest_group_0 = parameters["honest_group_0"].get<vector<interfaceId>>();
-		honest_group_1 = parameters["honest_group_1"].get<vector<interfaceId>>();
+		group_0 = parameters["group_0"].get<vector<interfaceId>>();
+		group_1 = parameters["group_1"].get<vector<interfaceId>>();
 		combination = parameters["combination"].get<vector<string>>();
 
 		is_byzantine = true;
@@ -81,7 +89,7 @@ namespace quantas {
 		final_value = -1;
 		total_msgs_sent = 0;
 
-		if (find(honest_group_0.begin(), honest_group_0.end(), id()) != honest_group_0.end()) fx = 0;
+		if (find(group_0.begin(), group_0.end(), id()) != group_0.end()) fx = 0;
 		else fx = 1;
 
 	}
@@ -89,7 +97,6 @@ namespace quantas {
 	void COOLPeer::performComputation() {
 
 		// ------------------------------ BRB --------------------------------------------------
-
 		if (is_byzantine && getRound() == 0 && id() == sender) {
 			COOLMessage m0;
 			m0.source = id();
@@ -101,111 +108,10 @@ namespace quantas {
 			m1.type = "f(x)";
 			m1.value = 1;
 
-			byzantine_broadcast(m0, m1, honest_group_0, honest_group_1);
+			byzantine_broadcast(m0, m1, group_0, group_1);
 			if (debug_prints) cout << " sent byzantine send messages" << endl;
 		}
-
-		if (!is_byzantine && getRound() == 0 && id() == sender) {
-			COOLMessage m0;
-			m0.source = id();
-			m0.type = "f(x)";
-			m0.value = 0;
-			broadcast(m0);
-			total_msgs_sent  += network_size;
-			if (debug_prints) cout << " sent honest send messages" << endl;
-		}
-
-
-		// ------------------------------ Byzantine Messages -----------------------------------
-
-		if (is_byzantine && getRound() == 0){
-			COOLMessage exchange_m0;
-			exchange_m0.type = "exchange";
-			exchange_m0.source = id();
-			exchange_m0.value = 0;
-			COOLMessage exchange_m1;
-			exchange_m1.type = "exchange";
-			exchange_m1.source = id();
-			exchange_m1.value = 1;
-
-			COOLMessage ok1_m0;
-			ok1_m0.type = "ok1";
-			ok1_m0.source = id();
-			ok1_m0.value = 0;
-			COOLMessage ok1_m1;
-			ok1_m1.type = "ok1";
-			ok1_m1.source = id();
-			ok1_m1.value = 1;
-
-			COOLMessage ok2_m0;
-			ok2_m0.type = "ok2";
-			ok2_m0.source = id();
-			ok2_m0.value = 0;
-			COOLMessage ok2_m1;
-			ok2_m1.type = "ok2";
-			ok2_m1.source = id();
-			ok2_m1.value = 1;
-
-			COOLMessage done_m0;
-			done_m0.type = "done";
-			done_m0.source = id();
-			done_m0.value = 0;
-			COOLMessage done_m1;
-			done_m1.type = "done";
-			done_m1.source = id();
-			done_m1.value = 1;
-
-			COOLMessage yourpoint_m0;
-			yourpoint_m0.type = "yourpoint";
-			yourpoint_m0.source = id();
-			yourpoint_m0.value = 0;
-			COOLMessage yourpoint_m1;
-			yourpoint_m1.type = "yourpoint";
-			yourpoint_m1.source = id();
-			yourpoint_m1.value = 1;
-
-			COOLMessage mypoint_m0;
-			mypoint_m0.type = "mypoint";
-			mypoint_m0.source = id();
-			mypoint_m0.value = 0;
-			COOLMessage mypoint_m1;
-			mypoint_m1.type = "mypoint";
-			mypoint_m1.source = id();
-			mypoint_m1.value = 1;
-			
-
-			//cout << "Combination: " << combination[0] << " - " << combination[1] << "  -->  ";
-			if (combination[0] == "silent"){ /* do nothing; */ }
-			if (combination[0] == "same") byzantine_broadcast(exchange_m0, exchange_m1, honest_group_0, honest_group_1);
-			if (combination[0] == "opposite") byzantine_broadcast(exchange_m0, exchange_m1, honest_group_1, honest_group_0);
-
-			if (combination[1] == "silent"){ /* do nothing; */ }
-			if (combination[1] == "same") byzantine_broadcast(ok1_m0, ok1_m1, honest_group_0, honest_group_1);
-			if (combination[1] == "opposite") byzantine_broadcast(ok1_m0, ok1_m1, honest_group_1, honest_group_0);
-
-			if (combination[2] == "silent"){ /* do nothing; */ }
-			if (combination[2] == "same") byzantine_broadcast(ok2_m0, ok2_m1, honest_group_0, honest_group_1);
-			if (combination[2] == "opposite") byzantine_broadcast(ok2_m0, ok2_m1, honest_group_1, honest_group_0);
-
-			if (combination[3] == "silent"){ /* do nothing; */ }
-			if (combination[3] == "same") byzantine_broadcast(done_m0, done_m1, honest_group_0, honest_group_1);
-			if (combination[3] == "opposite") byzantine_broadcast(done_m0, done_m1, honest_group_1, honest_group_0);
-
-			if (combination[4] == "silent"){ /* do nothing; */ }
-			if (combination[4] == "same") byzantine_broadcast(yourpoint_m0, yourpoint_m1, honest_group_0, honest_group_1);
-			if (combination[4] == "opposite") byzantine_broadcast(yourpoint_m0, yourpoint_m1, honest_group_1, honest_group_0);
-
-			if (combination[5] == "silent"){ /* do nothing; */ }
-			if (combination[5] == "same") byzantine_broadcast(mypoint_m0, mypoint_m1, honest_group_0, honest_group_1);
-			if (combination[5] == "opposite") byzantine_broadcast(mypoint_m0, mypoint_m1, honest_group_1, honest_group_0);
-		}
-
-		if (is_byzantine) {
-			// Byzantine nodes do nothing else
-			return;
-		}
-
-		
+		// ----------------------------------------------------------------------------------------
 
 		if (debug_prints) cout << "node_" << id() << " -------------------------------------" << endl;
 		while (!inStreamEmpty()) {
@@ -216,11 +122,22 @@ namespace quantas {
 			if (m.type == "f(x)") {
 				fx = m.value;
 				COOLMessage exchange_m;
-				exchange_m.source = id();
-				exchange_m.type = "exchange";
-				exchange_m.value = fx;
-				broadcast(exchange_m);
-				total_msgs_sent  += network_size;
+
+				// byzantine node 
+				if (is_byzantine && combination[0] != "silent"){
+					exchange_m.source = id();
+					exchange_m.type = "exchange";
+					exchange_m.value = byzantine_value(combination[0], fx);
+					broadcast(exchange_m);
+				}
+				// honest node
+				else if (!is_byzantine){
+					exchange_m.source = id();
+					exchange_m.type = "exchange";
+					exchange_m.value = fx;
+					broadcast(exchange_m);
+					total_msgs_sent  += network_size;
+				}
 				if (debug_prints) printf("--> (%s, %ld, %d)\n", exchange_m.type.c_str(), exchange_m.source, exchange_m.value);
 			}
 			else if (m.type == "exchange" && m.value == fx) A1.push_back(m.source);
@@ -233,32 +150,66 @@ namespace quantas {
 			// ------------------------------ DISPERSAL --------------------------------------------
 
 			if (sent_ok1 == false && check_ok1()){
-				sent_ok1 = true;
 				COOLMessage ok1_m;
-				ok1_m.source = id();
-				ok1_m.type = "ok1";
-				broadcast(ok1_m);
-				total_msgs_sent  += network_size;
+
+				// byzantine node
+				if (is_byzantine && combination[1] != "silent"){
+					ok1_m.source = id();
+					ok1_m.type = "ok1";
+					broadcast(ok1_m);
+				}
+				// honest node
+				else if (!is_byzantine){
+					ok1_m.source = id();
+					ok1_m.type = "ok1";
+					broadcast(ok1_m);
+					total_msgs_sent  += network_size;
+				}
+
+				sent_ok1 = true;
 				if (debug_prints) printf("--> (%s, %ld, %d)\n", ok1_m.type.c_str(), ok1_m.source, ok1_m.value);
 			}
 
 			if (sent_ok2 == false && check_ok2()){
-				sent_ok2 = true;
 				COOLMessage ok2_m;
-				ok2_m.source = id();
-				ok2_m.type = "ok2";
-				broadcast(ok2_m);
-				total_msgs_sent  += network_size;
+
+				// byzantine node
+				if (is_byzantine && combination[2] != "silent"){
+					ok2_m.source = id();
+					ok2_m.type = "ok2";
+					broadcast(ok2_m);
+					total_msgs_sent  += network_size;
+				}
+				// honest node
+				else if (!is_byzantine){
+					ok2_m.source = id();
+					ok2_m.type = "ok2";
+					broadcast(ok2_m);
+					total_msgs_sent  += network_size;
+				}
+
+				sent_ok2 = true;
 				if (debug_prints) printf("--> (%s, %ld, %d)\n", ok2_m.type.c_str(), ok2_m.source, ok2_m.value);
 			}
 
 			if (sent_done == false && check_done()){
-				sent_done = true;
 				COOLMessage done_m;
-				done_m.source = id();
-				done_m.type = "done";
-				broadcast(done_m);
-				total_msgs_sent  += network_size;
+
+				// byzantine node
+				if (is_byzantine && combination[3] != "silent"){
+					done_m.source = id();
+					done_m.type = "done";
+					broadcast(done_m);
+				}
+				// honest node
+				else if (!is_byzantine){
+					done_m.source = id();
+					done_m.type = "done";
+					broadcast(done_m);
+					total_msgs_sent  += network_size;
+				}
+
+				sent_done = true;
 				if (debug_prints) printf("--> (%s, %ld, %d)\n", done_m.type.c_str(), done_m.source, done_m.value);
 			}
 
@@ -267,11 +218,23 @@ namespace quantas {
 				if (sent_ok2 == true){ 
 					// we are in the case with f(x)
 					COOLMessage yourpoint_m;
-					yourpoint_m.source = id();
-					yourpoint_m.type = "yourpoint";
-					yourpoint_m.value = fx;
-					broadcast(yourpoint_m);
-					total_msgs_sent  += network_size;
+
+					// byzantine node
+					if (is_byzantine && combination[4] != "silent"){
+						yourpoint_m.source = id();
+						yourpoint_m.type = "yourpoint";
+						yourpoint_m.value = byzantine_value(combination[4], fx);
+						broadcast(yourpoint_m);
+					}
+					// honest node
+					else if (!is_byzantine){
+						yourpoint_m.source = id();
+						yourpoint_m.type = "yourpoint";
+						yourpoint_m.value = fx;
+						broadcast(yourpoint_m);
+						total_msgs_sent  += network_size;
+					}
+					
 					if (debug_prints) printf("--> (%s, %ld, %d)\n", yourpoint_m.type.c_str(), yourpoint_m.source, yourpoint_m.value);
 				}
 				else {
@@ -282,17 +245,29 @@ namespace quantas {
 			// ------------------------------ DATA DISSEMINATION -----------------------------------
 
 			if (sent_mypoint == false && check_mypoint()!=-1){
-				sent_mypoint = true;
 				COOLMessage mypoint_m;
-				mypoint_m.source = id();
-				mypoint_m.type = "mypoint";
-				mypoint_m.value = check_mypoint();
-				broadcast(mypoint_m);
-				total_msgs_sent  += network_size;
+
+				// byzantine node
+				if (is_byzantine && combination[5] != "silent"){
+					mypoint_m.source = id();
+					mypoint_m.type = "mypoint";
+					mypoint_m.value = byzantine_value(combination[5], check_mypoint());
+					broadcast(mypoint_m);
+				}
+				// honest node
+				else if (!is_byzantine){
+					mypoint_m.source = id();
+					mypoint_m.type = "mypoint";
+					mypoint_m.value = check_mypoint();
+					broadcast(mypoint_m);
+					total_msgs_sent  += network_size;
+				}
+
+				sent_mypoint = true;
 				if (debug_prints) printf("--> (%s, %ld, %d)\n", mypoint_m.type.c_str(), mypoint_m.source, mypoint_m.value);
 			}
 
-			if (decoded == false && check_decode()!=-1){
+			if (decoded == false && check_decode()!=-1 && !is_byzantine){
 				decoded = true;
 				final_value = check_decode();
 				finished_round = getRound();

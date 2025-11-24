@@ -20,7 +20,7 @@ PROJECT_DIR := quantas
 #
 
 #----->
-INPUTFILE := cool_opposite_opposite_opposite_opposite_opposite_opposite.json
+INPUTFILE := cool_silent_silent_silent_silent_silent_silent.json
 ALGFILE := COOLPeer
 #<-----
 

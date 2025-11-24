@@ -9,6 +9,22 @@ You should have received a copy of the GNU General Public License along with QUA
 
 #include "Alg24Peer.hpp"
 
+string RED = "\033[31m";
+string GREEN = "\033[32m";
+string YELLOW = "\033[33m";
+string BLUE = "\033[34m";
+string MAGENTA = "\033[35m";
+string CYAN = "\033[36m";
+string RESET = "\033[0m";
+
+int byzantine_value(string behavior, int v) {
+	if (behavior == "opposite") {
+		return 1 - v;
+	}
+	// default behavior: same value
+	return v;
+}
+
 namespace quantas {
 
 	//
@@ -34,8 +50,8 @@ namespace quantas {
 		network_size = n;
 		sender = parameters["sender"];
 		percentage = parameters["percentage"];
-		honest_group_0 = parameters["honest_group_0"].get<vector<interfaceId>>();
-		honest_group_1 = parameters["honest_group_1"].get<vector<interfaceId>>();
+		group_0 = parameters["group_0"].get<vector<interfaceId>>();
+		group_1 = parameters["group_1"].get<vector<interfaceId>>();
 		combination = parameters["combination"].get<vector<string>>();
 
 		is_byzantine = true;
@@ -58,9 +74,11 @@ namespace quantas {
 		// reset algorithm specific variables
 		delivered = false;
 		is_first_propose = true;
+
 		ack_sent = false;
 		vote1_sent = false;
 		vote2_sent = false;
+
 		ack_msgs.clear();
 		vote1_msgs.clear();
 		vote2_msgs.clear();
@@ -70,9 +88,15 @@ namespace quantas {
 		finishing_step = -1;
 		total_msgs_sent = 0;
 		
+
 	}
 
 	void Alg24Peer::performComputation() {
+
+		if (ack_sent_value != -1) printf("%s(ack, s:%ld, v:%d)%s  -  ", MAGENTA.c_str(), id(), ack_sent_value, RESET.c_str());
+		if (vote1_sent_value != -1) printf("%s(vote1, s:%ld, v:%d)%s  -  ", MAGENTA.c_str(), id(), vote1_sent_value, RESET.c_str());
+		if (vote2_sent_value != -1) printf("%s(vote2, s:%ld, v:%d)%s", MAGENTA.c_str(), id(), vote2_sent_value, RESET.c_str());
+		cout << endl;
 
 		// ------------------------------ STEP 1: Propose -----------------------------------------
 		if (is_byzantine && getRound() == 0 && id() == sender) {
@@ -86,115 +110,44 @@ namespace quantas {
 			m1.source = id();
 			m1.value = 1;
 
-			byzantine_broadcast(m0, m1, honest_group_0, honest_group_1);
-			if (debug_prints) cout << " sent byzantine propose messages" << endl;
-		}
-
-		if (!is_byzantine && getRound() == 0 && id() == sender) {
-			Alg24Message m0;
-			m0.type = "propose";
-			m0.source = id();
-			m0.value = 0;
-			broadcast(m0);
-			total_msgs_sent  += network_size;
-			if (debug_prints) cout << " sent honest propose message" << endl;
-		}
-
-		// ------------------------------ Byzantine Ack/ Vote -----------------------------------------
-		// Byzantine nodes send conflicting ack messages to honest groups
-		// Honest nodes are split into two groups, each receiving a different value
-		// This simulates a worst-case scenario where Byzantine nodes try to cause maximum confusion
-		if (is_byzantine && getRound() == 0){
-			Alg24Message ack_m0;
-			ack_m0.type = "ack";
-			ack_m0.source = id();
-			ack_m0.value = 0;
-			Alg24Message ack_m1;
-			ack_m1.type = "ack";
-			ack_m1.source = id();
-			ack_m1.value = 1;
-            Alg24Message vote1_m0;
-			vote1_m0.type = "vote1";
-			vote1_m0.source = id();
-			vote1_m0.value = 0;
-			Alg24Message vote1_m1;
-			vote1_m1.type = "vote1";
-			vote1_m1.source = id();
-			vote1_m1.value = 1;
-			Alg24Message vote2_m0;
-			vote2_m0.type = "vote2";
-			vote2_m0.source = id();
-			vote2_m0.value = 0;
-			Alg24Message vote2_m1;
-			vote2_m1.type = "vote2";
-			vote2_m1.source = id();
-			vote2_m1.value = 1;
-
-			// cout << "Combination: " << combination[0] << " - " << combination[1] << " - " << combination[2] << "  -->  ";
-			if (combination[0] == "silent"){
-				// do nothing
-				//cout << "silent - ";
-			}
-			if (combination[0] == "same"){
-				byzantine_broadcast(ack_m0, ack_m1, honest_group_0, honest_group_1);
-				//cout << "same - ";
-			}
-			if (combination[0] == "opposite"){
-				byzantine_broadcast(ack_m0, ack_m1, honest_group_1, honest_group_0);
-				//cout << "opposite - ";
-			}
-			if (combination[1] == "silent"){
-				// do nothing
-				//cout << "silent - ";
-			}
-			if (combination[1] == "same"){
-				byzantine_broadcast(vote1_m0, vote1_m1, honest_group_0, honest_group_1);
-				//cout << "same - ";
-			}
-			if (combination[1] == "opposite"){
-				byzantine_broadcast(vote1_m0, vote1_m1, honest_group_1, honest_group_0);
-				//cout << "opposite - ";
-			}
-			if (combination[2] == "silent"){
-				// do nothing
-				//cout << "silent" << endl;
-			}
-			if (combination[2] == "same"){
-				byzantine_broadcast(vote2_m0, vote2_m1, honest_group_0, honest_group_1);
-				//cout << "same" << endl;
-			}
-			if (combination[2] == "opposite"){
-				byzantine_broadcast(vote2_m0, vote2_m1, honest_group_1, honest_group_0);
-				//cout << "opposite" << endl;
-			}
-
+			byzantine_broadcast(m0, m1, group_0, group_1);
+			if (debug_prints) cout << RED << " sent byzantine propose messages" << RESET << endl;
 		}
 		// ----------------------------------------------------------------------------------------
 
-		if (is_byzantine) {
-			// Byzantine nodes do nothing else
-			return;
-		}
-
+		if (delivered) return;
 
 		if (debug_prints) cout << "node_" << id() << " -------------------------------------" << endl;
 		while (!inStreamEmpty()) {
 			Packet<Alg24Message> newMsg = popInStream();
 			Alg24Message m = newMsg.getMessage();
 			addMsg(m);
-			if (debug_prints) printf("<-- (%s, %ld, %d)\n", m.type.c_str(), m.source, m.value);
+			if (debug_prints) printf("%s<-- (%s, %ld, %d)%s\n", BLUE.c_str(), m.type.c_str(), m.source, m.value, RESET.c_str());
 			
 			// ------------------------------ STEP 2: Ack -----------------------------------------
 			if (m.type == "propose" && is_first_propose) {
 				Alg24Message ack_msg;
-				ack_msg.type = "ack";
-				ack_msg.source = id();
-				ack_msg.value = m.value;
-				broadcast(ack_msg);
-				total_msgs_sent  += network_size;
+
+				// byzantine node
+				if (is_byzantine && combination[0] != "silent") {
+					ack_msg.type = "ack";
+					ack_msg.source = id();
+					ack_msg.value = byzantine_value(combination[0], m.value);
+					broadcast(ack_msg);
+				}
+				// honest node 
+				else if (!is_byzantine) {
+					ack_msg.type = "ack";
+					ack_msg.source = id();
+					ack_msg.value = m.value;
+					broadcast(ack_msg);
+					total_msgs_sent  += network_size;
+				}
+
 				ack_sent = true;
+				ack_sent_value = ack_msg.value;
 				is_first_propose = false;
-				if (debug_prints) printf("--> step 2: (%s, %ld, %d)\n", ack_msg.type.c_str(), ack_msg.source, ack_msg.value);
+				if (debug_prints) printf("%s--> step 2: (%s, %ld, %d)%s\n", GREEN.c_str(), ack_msg.type.c_str(), ack_msg.source, ack_msg.value, RESET.c_str());
 			}
 			// ------------------------------------------------------------------------------------
 
@@ -204,28 +157,52 @@ namespace quantas {
 				// ------------------------------ STEP 3: 2-Round Commit --------------------------
 				if ((count(ack_msgs, m.value) >= ack_delivery_threshold) && (delivered == false)){
 					Alg24Message vote1_msg;
-					vote1_msg.type = "vote1";
-					vote1_msg.source = id();
-					vote1_msg.value = m.value;
-					broadcast(vote1_msg);
-					total_msgs_sent  += network_size;
-					vote1_sent = true;
-					if (debug_prints) printf("--> step 3: (%s, %ld, %d)\n", vote1_msg.type.c_str(), vote1_msg.source, vote1_msg.value);
-
 					Alg24Message vote2_msg;
-					vote2_msg.type = "vote2";
-					vote2_msg.source = id();
-					vote2_msg.value = m.value;
-					broadcast(vote2_msg);
-					total_msgs_sent  += network_size;
-					vote2_sent = true;
-					if (debug_prints) printf("--> step 3: (%s, %ld, %d)\n", vote2_msg.type.c_str(), vote2_msg.source, vote2_msg.value);
 
+					// byzantine node
+					if (is_byzantine) {
+
+						if (combination[1] != "silent") {
+							vote1_msg.type = "vote1";
+							vote1_msg.source = id();
+							vote1_msg.value = byzantine_value(combination[1], m.value);
+							broadcast(vote1_msg);
+						}
+
+						if (combination[2] != "silent") {
+							vote2_msg.type = "vote2";
+							vote2_msg.source = id();
+							vote2_msg.value = byzantine_value(combination[2], m.value);
+							broadcast(vote2_msg);
+						}
+					}
+					// honest node
+					else if (!is_byzantine) {
+						vote1_msg.type = "vote1";
+						vote1_msg.source = id();
+						vote1_msg.value = m.value;
+						broadcast(vote1_msg);
+						total_msgs_sent  += network_size;
+
+						vote2_msg.type = "vote2";
+						vote2_msg.source = id();
+						vote2_msg.value = m.value;
+						broadcast(vote2_msg);
+						total_msgs_sent  += network_size;
+
+						finished_round = getRound();
+						final_value = m.value;
+						finishing_step = 2;
+					}
+
+					vote1_sent = true;
+					vote1_sent_value = vote1_msg.value;
+					vote2_sent = true;
+					vote2_sent_value = vote2_msg.value;
 					delivered = true;
-					finished_round = getRound();
-					final_value = m.value;
-					finishing_step = 2;
-					if (debug_prints) cout << " step 3: DELIVERED value " << final_value << endl;
+					if (debug_prints) printf("%s--> step 3: (%s, %ld, %d)%s\n", GREEN.c_str(), vote1_msg.type.c_str(), vote1_msg.source, vote1_msg.value, RESET.c_str());
+					if (debug_prints) printf("%s--> step 3: (%s, %ld, %d)%s\n", GREEN.c_str(), vote2_msg.type.c_str(), vote2_msg.source, vote2_msg.value, RESET.c_str());
+					if (debug_prints) cout << RED << " step 3: DELIVERED value " << final_value << RESET << endl;
 				}
 				// --------------------------------------------------------------------------------
 
@@ -233,13 +210,25 @@ namespace quantas {
 				// ------------------------------ STEP 4.1: Ack -> Vote1 --------------------------
 				if ((count(ack_msgs, m.value) >= ack_vote1_threshold) && (vote1_sent == false)){
 					Alg24Message vote1_msg;
-					vote1_msg.type = "vote1";
-					vote1_msg.source = id();
-					vote1_msg.value = m.value;
-					broadcast(vote1_msg);
-					total_msgs_sent  += network_size;
+
+					// byzantine node
+					if (is_byzantine && combination[1] != "silent") {
+						vote1_msg.type = "vote1";
+						vote1_msg.source = id();
+						vote1_msg.value = byzantine_value(combination[1], m.value);
+						broadcast(vote1_msg);
+					}
+					// honest node
+					else if (!is_byzantine) {
+						vote1_msg.type = "vote1";
+						vote1_msg.source = id();
+						vote1_msg.value = m.value;
+						broadcast(vote1_msg);
+						total_msgs_sent  += network_size;
+					}
+
 					vote1_sent = true;
-					if (debug_prints) printf("--> step 4.1: (%s, %ld, %d)\n", vote1_msg.type.c_str(), vote1_msg.source, vote1_msg.value);
+					if (debug_prints) printf("%s--> step 4.1: (%s, %ld, %d)%s\n", GREEN.c_str(), vote1_msg.type.c_str(), vote1_msg.source, vote1_msg.value, RESET.c_str());
 				}
 				// --------------------------------------------------------------------------------
 			}
@@ -248,13 +237,25 @@ namespace quantas {
 			if (m.type == "vote1"){
 				if ((count(vote1_msgs, m.value) >= vote1_vote2_threshold) && (vote2_sent == false)){
 					Alg24Message vote2_msg;
-					vote2_msg.type = "vote2";
-					vote2_msg.source = id();
-					vote2_msg.value = m.value;
-					broadcast(vote2_msg);
-					total_msgs_sent  += network_size;
+
+					// byzantine node
+					if (is_byzantine && combination[2] != "silent") {
+						vote2_msg.type = "vote2";
+						vote2_msg.source = id();
+						vote2_msg.value = byzantine_value(combination[2], m.value);
+						broadcast(vote2_msg);
+					}
+					// honest node
+					else if (!is_byzantine) {
+						vote2_msg.type = "vote2";
+						vote2_msg.source = id();
+						vote2_msg.value = m.value;
+						broadcast(vote2_msg);
+						total_msgs_sent  += network_size;
+					}
+
 					vote2_sent = true;
-					if (debug_prints) printf("--> step 4.2: (%s, %ld, %d)\n", vote2_msg.type.c_str(), vote2_msg.source, vote2_msg.value);
+					if (debug_prints) printf("%s--> step 4.2: (%s, %ld, %d)%s\n", GREEN.c_str(), vote2_msg.type.c_str(), vote2_msg.source, vote2_msg.value, RESET.c_str());
 				}
 			}
 			// ------------------------------------------------------------------------------------
@@ -264,24 +265,36 @@ namespace quantas {
 				// ------------------------------ STEP 4.3: Vote2 -> Vote2 ------------------------
 				if ((count(vote2_msgs, m.value) >= vote2_vote2_threshold) && (vote2_sent == false)){
 					Alg24Message vote2_msg;
-					vote2_msg.type = "vote2";
-					vote2_msg.source = id();
-					vote2_msg.value = m.value;
-					broadcast(vote2_msg);
-					total_msgs_sent  += network_size;
+
+					// byzantine node
+					if (is_byzantine && combination[2] != "silent") {
+						vote2_msg.type = "vote2";
+						vote2_msg.source = id();
+						vote2_msg.value = byzantine_value(combination[2], m.value);
+						broadcast(vote2_msg);
+					}
+					// honest node
+					else if (!is_byzantine) {
+						vote2_msg.type = "vote2";
+						vote2_msg.source = id();
+						vote2_msg.value = m.value;
+						broadcast(vote2_msg);
+						total_msgs_sent  += network_size;
+					}
+
 					vote2_sent = true;
-					if (debug_prints) printf("--> step 4.3: (%s, %ld, %d)\n", vote2_msg.type.c_str(), vote2_msg.source, vote2_msg.value);
+					if (debug_prints) printf("%s--> step 4.3: (%s, %ld, %d)%s\n", GREEN.c_str(), vote2_msg.type.c_str(), vote2_msg.source, vote2_msg.value, RESET.c_str());
 				}
 				// --------------------------------------------------------------------------------
 
 
 				// ------------------------------ STEP 5: Commit ----------------------------------
-				if ((count(vote2_msgs, m.value) >= vote2_delivery_threshold) && (delivered == false)){
+				if ((count(vote2_msgs, m.value) >= vote2_delivery_threshold) && (delivered == false) && (!is_byzantine)){
 					delivered = true;
 					finished_round = getRound();
 					final_value = m.value;
 					finishing_step = 4;
-					if (debug_prints) cout << " step 5: DELIVERED value " << final_value << endl;
+					if (debug_prints) cout << RED << " step 5: DELIVERED value " << final_value << RESET << endl;
 				}
 				// --------------------------------------------------------------------------------
 			}

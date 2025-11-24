@@ -7,7 +7,7 @@ import signal
 import sys
 import json
 
-TOTAL_TESTS = 3000
+TOTAL_TESTS = 1500
 ALL_TESTS = []
 def get_all_tests():
     global ALL_TESTS
@@ -55,6 +55,7 @@ def reader_status():
         if ("alg23" in test_name):
             count = d[test_name]
             perc = min(int((count/TOTAL_TESTS)*100), 100)
+            test_name = test_name.replace(".json","")
             tmp += f"{test_name:<40}: [{'#'*perc}{'.'*(100-perc)}] {perc:<3}%  - {count:>4}/{TOTAL_TESTS}\n"
     tmp += "\n"
     
@@ -62,6 +63,7 @@ def reader_status():
         if ("alg24" in test_name):
             count = d[test_name]
             perc = min(int((count/TOTAL_TESTS)*100), 100)
+            test_name = test_name.replace(".json","")
             tmp += f"{test_name:<40}: [{'#'*perc}{'.'*(100-perc)}] {perc:<3}%  - {count:>4}/{TOTAL_TESTS}\n"
     tmp += "\n"
     
@@ -69,6 +71,7 @@ def reader_status():
         if ("bracha" in test_name):
             count = d[test_name]
             perc = min(int((count/TOTAL_TESTS)*100), 100)
+            test_name = test_name.replace(".json","")
             tmp += f"{test_name:<40}: [{'#'*perc}{'.'*(100-perc)}] {perc:<3}%  - {count:>4}/{TOTAL_TESTS}\n"
     tmp += "\n"
     
@@ -76,6 +79,7 @@ def reader_status():
         if ("imbsraynal" in test_name):
             count = d[test_name]
             perc = min(int((count/TOTAL_TESTS)*100), 100)
+            test_name = test_name.replace(".json","")
             tmp += f"{test_name:<40}: [{'#'*perc}{'.'*(100-perc)}] {perc:<3}%  - {count:>4}/{TOTAL_TESTS}\n"
     
     tmp += "\n"
@@ -84,6 +88,9 @@ def reader_status():
         if ("cool" in test_name):
             count = d[test_name]
             perc = min(int((count/TOTAL_TESTS)*100), 100)
+            test_name = test_name.replace(".json","")
+            if (len(test_name.strip())>40):
+                test_name = test_name.replace("silent","sil").replace("opposite","opp")
             tmp += f"{test_name:<40}: [{'#'*perc}{'.'*(100-perc)}] {perc:<3}%  - {count:>4}/{TOTAL_TESTS}\n"
     
 

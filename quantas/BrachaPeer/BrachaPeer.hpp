@@ -56,10 +56,12 @@ namespace quantas{
         bool sent_echo = false;
         bool sent_ready = false;
         bool delivered = false;
+        int sent_echo_value = -1;
+        int sent_ready_value = -1;
         map<long, int> echo_msgs;
         map<long, int> ready_msgs;
-        vector<interfaceId> honest_group_0;
-        vector<interfaceId> honest_group_1;
+        vector<interfaceId> group_0;
+        vector<interfaceId> group_1;
 
         int check_echo(){
             unordered_map<int, int> freq;

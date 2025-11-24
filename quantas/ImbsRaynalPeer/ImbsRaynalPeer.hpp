@@ -55,8 +55,8 @@ namespace quantas{
         // -----------------------------------------
 
         // ----- Algorithm specific parameters -----
-        vector<interfaceId> honest_group_0;
-        vector<interfaceId> honest_group_1;
+        vector<interfaceId> group_0;
+        vector<interfaceId> group_1;
         vector<pair<long,int>> received_init;
         vector<pair<long,int>> received_witness;
         vector<pair<long,int>> broadcast_witness;

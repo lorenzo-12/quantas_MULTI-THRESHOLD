@@ -50,7 +50,7 @@ def plots_single_algorithm(alg):
         plt.close(fig)
         
 
-THRESHOLDS = {"alg23": 20, "imbsraynal": 19, "bracha": 33, "alg24": 25}
+THRESHOLDS = {"alg23": 20, "imbsraynal": 19, "bracha": 33, "alg24": 25, "cool": 33}
 ALGORITHM_COMPARISON_LIVENESS = [("alg23", "silent"), ("imbsraynal", "silent"), ("bracha", "silent_silent"), ("alg24", "opposite_silent_silent")]
 INFOS_LIVENESS = "delivery_nodes"
 ALGORITHM_COMPARISON_CORRECTNESS = [("alg23", "opposite"), ("imbsraynal", "opposite"), ("bracha", "silent_silent"), ("alg24", "opposite_opposite_opposite")]
@@ -183,6 +183,7 @@ plots_single_algorithm("alg23")
 plots_single_algorithm("imbsraynal")   
 plots_single_algorithm("bracha")   
 plots_single_algorithm("alg24")
+plots_single_algorithm("cool")
 
 plot_all_algorithms(ALGORITHM_COMPARISON_LIVENESS, INFOS_LIVENESS)
 plot_all_algorithms(ALGORITHM_COMPARISON_CORRECTNESS, INFOS_CORRECTNESS)
@@ -191,5 +192,7 @@ plot_all_algorithms(ALGORITHM_COMPARISON_CORRECTNESS, INFOS_CORRECTNESS_FREQUENC
 plot_all_algorithms_big(ALGORITHM_COMPARISON_CORRECTNESS, INFOS_CORRECTNESS, INFOS_CORRECTNESS_FREQUENCY)
 """
 
-plots_single_algorithm("imbsraynal") 
+#plots_single_algorithm("cool") 
 
+results = get_all_results("cool")
+print(results)

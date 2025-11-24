@@ -14,11 +14,11 @@ p_list = [100, 90, 80, 70, 60, 50]
 tests = 1000 
 
 comb = {
-    'alg23': {'msg_type': ['ack'], 'combinations': ['same', 'silent', 'opposite']}, 
-    'alg24': {'msg_type': ['ack', 'vote1', 'vote2'], 'combinations': [['silent', 'opposite', 'silent'], ['same', 'silent', 'opposite'], ['silent', 'opposite', 'opposite'], ['opposite', 'opposite', 'same'], ['silent', 'same', 'silent'], ['opposite', 'silent', 'silent'], ['opposite', 'same', 'same'], ['opposite', 'silent', 'opposite'], ['silent', 'same', 'opposite'], ['same', 'silent', 'same'], ['same', 'opposite', 'silent'], ['silent', 'opposite', 'same'], ['same', 'same', 'silent'], ['same', 'same', 'opposite'], ['silent', 'silent', 'silent'], ['same', 'opposite', 'opposite'], ['opposite', 'silent', 'same'], ['silent', 'same', 'same'], ['silent', 'silent', 'opposite'], ['opposite', 'opposite', 'silent'], ['opposite', 'opposite', 'opposite'], ['same', 'same', 'same'], ['same', 'opposite', 'same'], ['opposite', 'same', 'silent'], ['opposite', 'same', 'opposite'], ['same', 'silent', 'silent'], ['silent', 'silent', 'same']]}, 
-    'bracha': {'msg_type': ['echo', 'ready'], 'combinations': [['same', 'silent'], ['silent', 'opposite'], ['silent', 'same'], ['opposite', 'opposite'], ['same', 'opposite'], ['silent', 'silent'], ['opposite', 'same'], ['same', 'same'], ['opposite', 'silent']]}, 
-    'imbsraynal': {'msg_type': ['witness'], 'combinations': ['same', 'silent', 'opposite']},
-    'cool': {'msg_type': ['exchange',"ok1","ok2","done","yourpoint","mypoint"], 'combinations': [['silent','silent','silent','silent','silent','silent'], ['same','same','same','same','same','same'], ['opposite','opposite','opposite','opposite','opposite','opposite']]}
+    'alg23': {'msg_type': ['ack'], 'combinations': ['silent', 'opposite']}, 
+    'alg24': {'msg_type': ['ack', 'vote1', 'vote2'], 'combinations': [['silent', 'same', 'same'], ['opposite', 'same', 'same'], ['same', 'silent', 'same'], ['silent', 'silent', 'same'], ['opposite', 'silent', 'same'], ['same', 'opposite', 'same'], ['silent', 'opposite', 'same'], ['opposite', 'opposite', 'same'], ['same', 'same', 'silent'], ['silent', 'same', 'silent'], ['opposite', 'same', 'silent'], ['same', 'silent', 'silent'], ['silent', 'silent', 'silent'], ['opposite', 'silent', 'silent'], ['same', 'opposite', 'silent'], ['silent', 'opposite', 'silent'], ['opposite', 'opposite', 'silent'], ['same', 'same', 'opposite'], ['silent', 'same', 'opposite'], ['opposite', 'same', 'opposite'], ['same', 'silent', 'opposite'], ['silent', 'silent', 'opposite'], ['opposite', 'silent', 'opposite'], ['same', 'opposite', 'opposite'], ['silent', 'opposite', 'opposite'], ['opposite', 'opposite', 'opposite']]}, 
+    'bracha': {'msg_type': ['echo', 'ready'], 'combinations': [['same', 'silent'], ['silent', 'opposite'], ['silent', 'same'], ['opposite', 'opposite'], ['same', 'opposite'], ['silent', 'silent'], ['opposite', 'same'], ['opposite', 'silent']]}, 
+    'imbsraynal': {'msg_type': ['witness'], 'combinations': ['silent', 'opposite']},
+    'cool': {'msg_type': ['exchange',"ok1","ok2","done","yourpoint","mypoint"], 'combinations': [['silent','silent','silent','silent','silent','silent'], ['opposite','send','send','send','opposite','opposite']]}
 }
 
 def combination_to_string(l):
@@ -31,13 +31,12 @@ def combination_to_string(l):
     return x
 
 
-def get_honest_groups(n, p, byz_nodes):
-    num_honest = n - len(byz_nodes)
-    group_size = num_honest * p // 100
-    all_honest = [i for i in range(n) if i not in byz_nodes]
-    random.shuffle(all_honest)
-    group_1 = all_honest[:group_size]
-    group_2 = all_honest[group_size:]
+def get_groups(n, p):
+    group_size = n * p // 100
+    all_node = [i for i in range(n)]
+    random.shuffle(all_node)
+    group_1 = all_node[:group_size]
+    group_2 = all_node[group_size:]
     return group_1, group_2
 
 def getByzantineVector(n,f):
@@ -104,9 +103,9 @@ for alg, alg_class in alg_list:
                 byz_vec, vec = getByzantineVector(n,f)
                 parameters["byzantine_nodes"] = vec
                 parameters["sender"] = getByzantineSender(byz_vec)
-                honest_group_0, honest_group_1 = get_honest_groups(n, p, byz_vec)
-                parameters["honest_group_0"] = honest_group_0
-                parameters["honest_group_1"] = honest_group_1
+                group_0, group_1 = get_groups(n, p)
+                parameters["group_0"] = group_0
+                parameters["group_1"] = group_1
                 parameters["combination"] = combination
 
                 distribution = exp["distribution"]
@@ -115,7 +114,7 @@ for alg, alg_class in alg_list:
                 distribution["global_delay"] = 5
                 distribution["global_delays_setting"] = "uniform"
                 distribution["min_lambda"] = 0.05
-                distribution["max_lambda"] = 2
+                distribution["max_lambda"] = 0.2
                 distribution["n"] = n
                 distribution["links_delay"] = {}
                 #distribution["links_delay"] = getGlobalDelays_distribution(n) 

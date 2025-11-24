@@ -20,7 +20,7 @@ PROJECT_DIR := quantas
 #
 
 #----->
-INPUTFILE := alg24_silent_silent_silent.json
+INPUTFILE := alg24_opposite_opposite_opposite.json
 ALGFILE := Alg24Peer
 #<-----
 
