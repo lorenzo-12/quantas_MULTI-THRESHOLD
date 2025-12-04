@@ -28,6 +28,7 @@ quantas/TrailPeer/*logs*/**/*
 quantas/TrailPeer/*Logs*/**/*
 
 results_backup/
+results_all/
 *.stderr
 *.stdout
 img/ 

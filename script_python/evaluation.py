@@ -216,6 +216,7 @@ def plot_all_algorithms_big(algorithms, info1, info2, info3):
 
 
 def plot_all_algorithms_big_vertical(algorithms, info1, info2, info3):
+    ft = 24
     d = {}
     for alg, combination in algorithms:
         d[alg] = {}
@@ -225,12 +226,12 @@ def plot_all_algorithms_big_vertical(algorithms, info1, info2, info3):
         d[alg][combination] = res_alg[combination]
     
     #fig, axes = plt.subplots(3, 5, figsize=(24, 12), sharex=True)
-    fig, axes = plt.subplots(5, 3, figsize=(16, 24))
+    fig, axes = plt.subplots(5, 3, figsize=(18, 24))
     axes = axes.ravel()
     for ax in axes:
         ax.set_xticks(P_VALUES)
-        ax.set_xticklabels([str(p) for p in P_VALUES], fontsize=16)
-        ax.tick_params(axis='both', which='major', labelsize=16)
+        ax.set_xticklabels([str(p) for p in P_VALUES], fontsize=ft)
+        ax.tick_params(axis='both', which='major', labelsize=ft)
     offsets_alg = np.linspace(-0.9, 0.9, len(algorithms))
     
     for idx_alg, alg in enumerate(d):
@@ -258,9 +259,9 @@ def plot_all_algorithms_big_vertical(algorithms, info1, info2, info3):
                 info1_title = info1
                 if info1 == "delivery_nodes":
                     info1_title = "terminating nodes"
-                ax.set_title(f"{info1_title} with f={f}", fontsize=16)
+                ax.set_title(f"{info1_title} with f={f}", fontsize=ft)
                 ax.grid(True, linestyle=':', alpha=0.4)
-                ax.set_xlabel("equivocation diversity", fontsize=16)
+                ax.set_xlabel("equivocation diversity", fontsize=ft)
             
             for idx, f in enumerate(F_VALUES):
                 ax = axes[idx*3+1]
@@ -280,9 +281,9 @@ def plot_all_algorithms_big_vertical(algorithms, info1, info2, info3):
                 y_min = [comb[f][p][info2][1] for p in P_VALUES]
                 y_max = [comb[f][p][info2][2] for p in P_VALUES]
                 ax.fill_between(x, y_min, y_max, alpha=0.15, color=ln.get_color(), linewidth=0)
-                ax.set_title(f"{info2} with f={f}", fontsize=16)
+                ax.set_title(f"{info2} with f={f}", fontsize=ft)
                 ax.grid(True, linestyle=':', alpha=0.4)
-                ax.set_xlabel("equivocation diversity", fontsize=16)
+                ax.set_xlabel("equivocation diversity", fontsize=ft)
             
             for idx, f in enumerate(F_VALUES):
                 ax = axes[idx*3+2]
@@ -302,14 +303,14 @@ def plot_all_algorithms_big_vertical(algorithms, info1, info2, info3):
                 y_min = [comb[f][p][info3][1] for p in P_VALUES]
                 y_max = [comb[f][p][info3][2] for p in P_VALUES]
                 ax.fill_between(x, y_min, y_max, alpha=0.15, color=ln.get_color(), linewidth=0)
-                ax.set_title(f"{info3} with f={f}", fontsize=16)
+                ax.set_title(f"{info3} with f={f}", fontsize=ft)
                 ax.grid(True, linestyle=':', alpha=0.4)
-                ax.set_xlabel("equivocation diversity", fontsize=16)
+                ax.set_xlabel("equivocation diversity", fontsize=ft)
                         
                         
     handles, labels = axes[0].get_legend_handles_labels()
     ncol = math.ceil(2)
-    fig.legend(handles, labels, loc='lower center', ncol=ncol, frameon=False, fontsize=18)
+    fig.legend(handles, labels, loc='lower center', ncol=ncol, frameon=False, fontsize=ft)
     #fig.suptitle(f"comparison_{info1}_{info2}_{info3}", y=0.98, fontsize=20)
     fig.tight_layout(rect=[0, 0.08, 1, 1])
     #plt.show()
