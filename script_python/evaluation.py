@@ -113,7 +113,7 @@ def plot_all_algorithms(algorithms, info):
 
 
 
-def plot_all_algorithms_big(algorithms, info1, info2, info3):
+def plot_all_algorithms_big(algorithms, info1, info2, info3, file_name: str = ""):
     d = {}
     for alg, combination in algorithms:
         d[alg] = {}
@@ -143,7 +143,7 @@ def plot_all_algorithms_big(algorithms, info1, info2, info3):
                 ln, = ax.plot(
                     x, y,
                     marker='o',
-                    linewidth=2,
+                    linewidth=4,
                     markerfacecolor='white',
                     markeredgewidth=1.5,
                     label=f'{alg}_{combination}  (t≤{THRESHOLDS[alg]})'
@@ -168,7 +168,7 @@ def plot_all_algorithms_big(algorithms, info1, info2, info3):
                 ln, = ax.plot(
                     x, y,
                     marker='o',
-                    linewidth=2,
+                    linewidth=4,
                     markerfacecolor='white',
                     markeredgewidth=1.5,
                     label=f'{alg}_{combination}  (t≤{THRESHOLDS[alg]})'
@@ -190,7 +190,7 @@ def plot_all_algorithms_big(algorithms, info1, info2, info3):
                 ln, = ax.plot(
                     x, y,
                     marker='o',
-                    linewidth=2,
+                    linewidth=4,
                     markerfacecolor='white',
                     markeredgewidth=1.5,
                     label=f'{alg}_{combination}  (f<={THRESHOLDS[alg]})'
@@ -211,12 +211,14 @@ def plot_all_algorithms_big(algorithms, info1, info2, info3):
     #fig.suptitle(f"comparison_{info1}_{info2}_{info3}", y=0.98, fontsize=20)
     fig.tight_layout(rect=[0, 0.08, 1, 1])
     #plt.show()
-    plt.savefig(DIR_IMG / f"comparison_{info1}_{info2}_{info3}.png", bbox_inches='tight', dpi=900)
+    if file_name != "":
+        plt.savefig(DIR_IMG / f"{file_name}.png", bbox_inches='tight', dpi=300)
+    plt.savefig(DIR_IMG / f"comparison_{info1}_{info2}_{info3}.png", bbox_inches='tight', dpi=300)
     plt.close(fig)
 
 
-def plot_all_algorithms_big_vertical(algorithms, info1, info2, info3):
-    ft = 24
+def plot_all_algorithms_big_vertical(algorithms, info1, info2, info3, file_name: str = ""):
+    ft = 28
     d = {}
     for alg, combination in algorithms:
         d[alg] = {}
@@ -226,7 +228,7 @@ def plot_all_algorithms_big_vertical(algorithms, info1, info2, info3):
         d[alg][combination] = res_alg[combination]
     
     #fig, axes = plt.subplots(3, 5, figsize=(24, 12), sharex=True)
-    fig, axes = plt.subplots(5, 3, figsize=(18, 24))
+    fig, axes = plt.subplots(5, 3, figsize=(20, 24))
     axes = axes.ravel()
     for ax in axes:
         ax.set_xticks(P_VALUES)
@@ -246,7 +248,7 @@ def plot_all_algorithms_big_vertical(algorithms, info1, info2, info3):
                 ln, = ax.plot(
                     x, y,
                     marker='o',
-                    linewidth=2,
+                    linewidth=6,
                     markerfacecolor='white',
                     markeredgewidth=1.5,
                     label=f'{alg}_{combination}  (t≤{THRESHOLDS[alg]})'
@@ -271,7 +273,7 @@ def plot_all_algorithms_big_vertical(algorithms, info1, info2, info3):
                 ln, = ax.plot(
                     x, y,
                     marker='o',
-                    linewidth=2,
+                    linewidth=6,
                     markerfacecolor='white',
                     markeredgewidth=1.5,
                     label=f'{alg}_{combination}  (t≤{THRESHOLDS[alg]})'
@@ -293,7 +295,7 @@ def plot_all_algorithms_big_vertical(algorithms, info1, info2, info3):
                 ln, = ax.plot(
                     x, y,
                     marker='o',
-                    linewidth=2,
+                    linewidth=6,
                     markerfacecolor='white',
                     markeredgewidth=1.5,
                     label=f'{alg}_{combination}  (f<={THRESHOLDS[alg]})'
@@ -314,7 +316,9 @@ def plot_all_algorithms_big_vertical(algorithms, info1, info2, info3):
     #fig.suptitle(f"comparison_{info1}_{info2}_{info3}", y=0.98, fontsize=20)
     fig.tight_layout(rect=[0, 0.08, 1, 1])
     #plt.show()
-    plt.savefig(DIR_IMG / f"comparison_vertical_{info1}_{info2}_{info3}.png", bbox_inches='tight', dpi=900)
+    if file_name != "":
+        plt.savefig(DIR_IMG / f"{file_name}.png", bbox_inches='tight', dpi=300)
+    plt.savefig(DIR_IMG / f"comparison_vertical_{info1}_{info2}_{info3}.png", bbox_inches='tight', dpi=300)
     plt.close(fig)
 
             
@@ -335,8 +339,8 @@ plot_all_algorithms(ALGORITHM_COMPARISON_CORRECTNESS, INFOS_CORRECTNESS_FREQUENC
 """
 
 
-#plot_all_algorithms_big(ALGORITHM_COMPARISON_CORRECTNESS,INFOS_LIVENESS, INFOS_CORRECTNESS, INFOS_CORRECTNESS_FREQUENCY)
-plot_all_algorithms_big_vertical(ALGORITHM_COMPARISON_CORRECTNESS,INFOS_LIVENESS, INFOS_CORRECTNESS, INFOS_CORRECTNESS_FREQUENCY)
+plot_all_algorithms_big(ALGORITHM_COMPARISON_CORRECTNESS,INFOS_LIVENESS, INFOS_CORRECTNESS, INFOS_CORRECTNESS_FREQUENCY, "horizontal")
+plot_all_algorithms_big_vertical(ALGORITHM_COMPARISON_CORRECTNESS,INFOS_LIVENESS, INFOS_CORRECTNESS, INFOS_CORRECTNESS_FREQUENCY, "vertical")
 
 
 
